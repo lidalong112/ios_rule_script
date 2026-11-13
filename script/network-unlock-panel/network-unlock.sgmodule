@@ -1,0 +1,11 @@
+#!name=网络信息与解锁检测面板
+#!desc=查询节点出口 IP、IP 纯净度、本地网络/接口信息，并检测 Netflix/Disney+/YouTube/TikTok 流媒体解锁和 ChatGPT/Claude/Gemini AI 解锁。IP 查询默认走「节点选择」策略组，可改 argument。
+#!author=Muse for mice
+#!homepage=https://github.com/lidalong112/ios_rule_script/tree/master/script/network-unlock-panel
+#!system=ios
+
+[Panel]
+NetworkUnlock = title="网络信息与解锁检测", content="点右上角刷新开始检测（首次约需 5-10 秒）", style=info, script-name=network-unlock, update-interval=3600
+
+[Script]
+network-unlock = type=generic, timeout=30, argument=节点选择, script-path=https://raw.githubusercontent.com/lidalong112/ios_rule_script/master/script/network-unlock-panel/network-unlock-panel.js

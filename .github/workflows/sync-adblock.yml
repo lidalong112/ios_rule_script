@@ -1,0 +1,29 @@
+name: Sync AdBlock Combined
+
+# 每天北京时间 04:35 自动同步墨鱼/可莉上游，重新生成合并模块；也可手动触发
+on:
+  schedule:
+    - cron: "35 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run sync script
+        run: python3 script/adblock-combined/sync.py
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- script/adblock-combined/AdBlock-Combined.sgmodule; then
+            echo "No upstream changes."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add script/adblock-combined/AdBlock-Combined.sgmodule
+            git commit -m "chore: sync AdBlock-Combined with upstream"
+            git push
+          fi

@@ -1,0 +1,36 @@
+name: Sync Fork With Upstream
+
+# 每天北京时间 05:05 把上游 blackmatrix7/ios_rule_script 的 master 合并进本仓库 master；也可手动触发
+# 说明：合并（merge）方式，你自己的提交（面板、去广告合集、sync-adblock 工作流）会保留；
+# 若上游与本仓库改了同一处产生冲突，本任务会失败并在 Actions 里标红，不会强行覆盖，到时人工处理。
+on:
+  schedule:
+    - cron: "5 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Merge upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/blackmatrix7/ios_rule_script.git
+          git fetch upstream master
+          if git merge-base --is-ancestor upstream/master HEAD; then
+            echo "Already up to date."
+            exit 0
+          fi
+          if ! git merge upstream/master -m "chore: sync upstream blackmatrix7"; then
+            echo "::error::Merge conflict with upstream — needs manual resolution."
+            git merge --abort || true
+            exit 1
+          fi
+          git push origin master

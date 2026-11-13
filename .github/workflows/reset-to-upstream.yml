@@ -1,0 +1,41 @@
+name: Reset Fork To Upstream (one-time)
+
+# 一次性操作：把本仓库 master 重置为上游 blackmatrix7 的 master，再把自有文件加回。
+# 背景：上游在 2024 年重写过历史，与本 fork 的共同祖先停在 2024-05-22，普通 merge 会大面积冲突，
+# 必须先做这一次重置对齐历史；之后 sync-fork.yml 的每日 merge 才能干净运行。
+# 会保留的自有文件（重置前暂存、重置后加回）：
+#   script/network-unlock-panel/、script/adblock-combined/、.github/workflows/ 全部
+# 其余 fork 独有内容（上游已删除/改名的旧文件）会随重置一并清掉。
+# 触发方式：只能在 Actions 页手动 Run workflow（特意不设定时，避免误跑第二次）。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reset to upstream, restore custom files, force push
+        run: |
+          set -e
+          mkdir -p /tmp/keep
+          cp -r script/network-unlock-panel /tmp/keep/ 2>/dev/null || true
+          cp -r script/adblock-combined /tmp/keep/ 2>/dev/null || true
+          mkdir -p /tmp/keep/workflows && cp .github/workflows/*.yml /tmp/keep/workflows/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/blackmatrix7/ios_rule_script.git
+          git fetch upstream master
+          git reset --hard upstream/master
+          mkdir -p script .github/workflows
+          cp -r /tmp/keep/network-unlock-panel script/ 2>/dev/null || true
+          cp -r /tmp/keep/adblock-combined script/ 2>/dev/null || true
+          cp /tmp/keep/workflows/*.yml .github/workflows/ 2>/dev/null || true
+          git add -A
+          git commit -m "chore: re-add custom files after one-time reset to upstream" || echo "nothing to re-add"
+          git push --force origin master

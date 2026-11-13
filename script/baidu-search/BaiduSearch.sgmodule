@@ -1,0 +1,46 @@
+#!name=Safari 百度超级搜索
+#!desc=前提：Safari 默认搜索引擎设为百度。地址栏输入「命令+空格+关键词」或「关键词+空格+命令」直达目标站（gg 谷歌、gh GitHub、by 必应、yd 有道、trc 谷歌译中、zh 知乎、wb 微博、db 豆瓣、tw X、yt YouTube、bli 哔哩哔哩、jd/tb 购物跳 App）；不带命令时不拦截，照常百度搜索。本模块仿墨鱼 Q-Search 的命令体系，触发域名改为百度（www/m 站、wd/word 参数均兼容）。
+
+[URL Rewrite]
+# gg 关键词（谷歌搜索），或 关键词 gg
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=gg\+([^&]+) https://www.google.com/search?q=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+gg(?:&.*)?$ https://www.google.com/search?q=$1 302
+# gh 关键词（GitHub），或 关键词 gh
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=gh\+([^&]+) https://github.com/search?q=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+gh(?:&.*)?$ https://github.com/search?q=$1 302
+# by 关键词（必应），或 关键词 by
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=by\+([^&]+) https://www.bing.com/search?q=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+by(?:&.*)?$ https://www.bing.com/search?q=$1 302
+# yd 关键词（有道词典），或 关键词 yd
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=yd\+([^&]+) http://dict.youdao.com/search?q=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+yd(?:&.*)?$ http://dict.youdao.com/search?q=$1 302
+# trc 关键词（谷歌译至中），或 关键词 trc
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=trc\+([^&]+) https://translate.google.com/#view=home&op=translate&sl=auto&tl=zh-CN&text=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+trc(?:&.*)?$ https://translate.google.com/#view=home&op=translate&sl=auto&tl=zh-CN&text=$1 302
+# zh 关键词（知乎），或 关键词 zh
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=zh\+([^&]+) https://www.zhihu.com/search?q=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+zh(?:&.*)?$ https://www.zhihu.com/search?q=$1 302
+# wb 关键词（微博），或 关键词 wb
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=wb\+([^&]+) https://s.weibo.com/weibo/$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+wb(?:&.*)?$ https://s.weibo.com/weibo/$1 302
+# db 关键词（豆瓣），或 关键词 db
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=db\+([^&]+) https://m.douban.com/search?query=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+db(?:&.*)?$ https://m.douban.com/search?query=$1 302
+# tw 关键词（X/Twitter），或 关键词 tw
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=tw\+([^&]+) https://x.com/search?q=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+tw(?:&.*)?$ https://x.com/search?q=$1 302
+# yt 关键词（YouTube），或 关键词 yt
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=yt\+([^&]+) https://www.youtube.com/results?search_query=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+yt(?:&.*)?$ https://www.youtube.com/results?search_query=$1 302
+# bli 关键词（哔哩哔哩），或 关键词 bli
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=bli\+([^&]+) https://m.bilibili.com/search?keyword=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+bli(?:&.*)?$ https://m.bilibili.com/search?keyword=$1 302
+# jd 关键词（京东 App），或 关键词 jd
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=jd\+([^&]+) openapp.jdmobile://virtual?params={"des":"productList","keyWord":"$1","from":"search","category":"jump"} 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+jd(?:&.*)?$ openapp.jdmobile://virtual?params={"des":"productList","keyWord":"$1","from":"search","category":"jump"} 302
+# tb 关键词（淘宝 App），或 关键词 tb
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=tb\+([^&]+) taobao://s.taobao.com?q=$1 302
+^https?:\/\/(?:www|m)\.baidu\.com\/(?:s|baidu)\?(?:[^&]*&)?(?:wd|word)=(.+)\+tb(?:&.*)?$ taobao://s.taobao.com?q=$1 302
+
+[MITM]
+hostname = %APPEND% www.baidu.com, m.baidu.com

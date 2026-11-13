@@ -1,0 +1,6 @@
+#!name=anti-AD 广告域名集
+#!desc=privacy-protection-tools 的 anti-AD 域名集（10 万+ 广告/追踪域名，整域 REJECT），以 DOMAIN-SET 远程引用，Surge 每 24 小时自动拉取上游更新。风格偏激进，个别 App 出现异常时先停用本模块排查。模块排序建议放在广告平台拦截器（BlockAdvertisers）上方，即优先级低于它，以保留其 DIRECT 放行例外。
+#!category=去广告
+
+[Rule]
+DOMAIN-SET,https://anti-ad.net/surge2.txt,REJECT,extended-matching,update-interval=86400

@@ -1,15 +1,23 @@
 #!name=外链接跳转Turrit
-#!desc=把 t.me/telegram.me/telegram.dog 各类链接按类型拆开，307 跳到 Turrit 打开（帖子/邀请/分享/代理/贴纸分别处理）
-#!author=模板 based on ddgksf2013 Redirect2Turrit（scheme 出处 @sooyaaabo）
+#!desc=把 t.me/telegram.me/telegram.dog 各类链接按类型拆开，307 跳到 Turrit 打开（帖子/邀请/分享/代理/贴纸/私有频道/论坛话题分别处理）
+#!author=模板 based on ddgksf2013 Redirect2Turrit（scheme 出处 @sooyaaabo），链接分类依据 Telegram 官方深链文档 core.telegram.org/api/links
 #!note=改法：想跳别的 TG 客户端，把下面所有 turrit:// 换成它的 scheme 即可（如官方 Telegram 是 tg://）；不需要的链接类型整行删掉即可
 
 [URL Rewrite]
-# 帖子链接 t.me/频道/123 → resolve 带 post（预览页 s/ 形式在下面单独处理）
-^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/([\w]+)\/(\d+) turrit://resolve?domain=$1&post=$2 307
+# 私有频道/群帖子（论坛话题形）t.me/c/频道ID/话题ID/帖子ID → privatepost
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/c\/(\d+)\/(\d+)\/(\d+) turrit://privatepost?channel=$1&post=$3&thread=$2 307
+# 私有频道/群帖子 t.me/c/频道ID/帖子ID → privatepost（官方形式，不是 resolve）
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/c\/(\d+)\/(\d+) turrit://privatepost?channel=$1&post=$2 307
+# 公开帖子（论坛话题形）t.me/用户名/话题ID/帖子ID
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?!(?:c|s|share|proxy|joinchat|addstickers|addemoji|addlist|contact|m|boost)[\/?])([\w]+)\/(\d+)\/(\d+) turrit://resolve?domain=$1&post=$3&thread=$2 307
+# 公开帖子 t.me/用户名/帖子ID
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?!(?:c|s|share|proxy|joinchat|addstickers|addemoji|addlist|contact|m|boost)[\/?])([\w]+)\/(\d+) turrit://resolve?domain=$1&post=$2 307
 # 预览页帖子 t.me/s/频道/123
 ^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/s\/([\w]+)\/(\d+) turrit://resolve?domain=$1&post=$2 307
-# 预览页首页 t.me/s/频道 → 去掉 s/ 直接 resolve
-^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/s\/([\w]+) turrit://resolve?domain=$1 307
+# 预览页首页 t.me/s/频道
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/s\/([\w]+)\/?$ turrit://resolve?domain=$1 307
+# 手机号链接 t.me/+手机号 → resolve?phone=（官方与邀请链接同形、按纯数字区分，必须排在邀请规则前）
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/\+(\d+) turrit://resolve?phone=$1 307
 # 邀请链接（新式）t.me/+hash
 ^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/\+(.+) turrit://join?invite=$1 307
 # 邀请链接（旧式）t.me/joinchat/hash
@@ -21,10 +29,10 @@
 # 表情包/贴纸 t.me/addstickers/包名、t.me/addemoji/包名
 ^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/addstickers\/(.+) turrit://addstickers?set=$1 307
 ^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/addemoji\/(.+) turrit://addemoji?set=$1 307
-# 带参数的用户/机器人链接 t.me/名字?start=xx（参数原样透传，如 start、startgroup）
-^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/([\w]+)\?(.+) turrit://resolve?domain=$1&$2 307
-# 兜底：纯用户名/频道名 t.me/名字（墨鱼原版就是这一条）
-^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(.+) turrit://resolve?domain=$1 307
+# 带参数的用户/机器人链接 t.me/名字?start=xx（参数原样透传，如 start、startgroup、videochat）
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?!(?:c|s|share|proxy|joinchat|addstickers|addemoji|addlist|contact|m|boost)[\/?])([\w]+)\?(.+) turrit://resolve?domain=$1&$2 307
+# 兜底：纯用户名/频道名 t.me/名字（单段锚定，其余未覆盖的保留路径如 contact/、addlist/、m/ 不再误跳，原样在浏览器打开）
+^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?!(?:c|s|share|proxy|joinchat|addstickers|addemoji|addlist|contact|m|boost)[\/?])([\w]+)\/?$ turrit://resolve?domain=$1 307
 
 [MITM]
 hostname = %APPEND% t.me, telegram.me, telegram.dog

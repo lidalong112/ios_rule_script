@@ -1,5 +1,5 @@
 #!name=去广告合集（墨鱼去开屏 + 可莉过滤器）
-#!desc=墨鱼去开屏 V2.0（@ddgksf2013）+ 可莉广告过滤器 · 由仓库 sync.py 自动同步上游生成，最近生成 2026-11-13
+#!desc=墨鱼去开屏 V2.0（@ddgksf2013）+ 可莉广告过滤器 · 由仓库 sync.py 自动同步上游生成，最近生成 2026-11-14
 #!author=@ddgksf2013、可莉
 # 本文件由 script/adblock-combined/sync.py 自动生成，请勿手改（改了也会被下一次同步覆盖）。
 # 上游：墨鱼 https://ddgksf2013.top/rewrite/StartUpAds.conf（直抓转换）；可莉经 GitHub 镜像 https://raw.githubusercontent.com/gys619/surge-tools/main/modules/Remove_ads_by_keli.sgmodule（kelee.one 拦截机房 IP，无法直抓）。

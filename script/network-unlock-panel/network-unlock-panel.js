@@ -49,6 +49,21 @@ function flag(code) {
   return String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 65, 0x1F1E6 + cc.charCodeAt(1) - 65);
 }
 
+
+function scoreBar(score) {
+  var f = Math.round(score / 10);
+  if (f < 0) f = 0; if (f > 10) f = 10;
+  var s = "";
+  for (var i = 0; i < 10; i++) s += (i < f ? "█" : "░");
+  return " " + s;
+}
+function secTitle(emoji, name) {
+  var line = "";
+  for (var i = 0; i < 16; i++) line += "━";
+  return emoji + " " + name + " " + line;
+}
+function padName(n) { while (n.length < 8) n += " "; return n; }
+
 // ---------- 1. 出口 IP 信息 ----------
 // 备用源 ip-api 一次把纯净度交叉验证要的 proxy/hosting/mobile 也查回来，
 // 走备用源时纯净度直接复用（iaReuse），不再重复请求 ip-api。
@@ -100,7 +115,7 @@ function checkIP() {
 // 纯净度评分是基于这两项的综合换算（见下方扣分），不是某个官方分数，明细会一并显示，方便自己判断
 function testPurity(ipInfo) {
   var ip = ipInfo.ip;
-  if (!ip) return Promise.resolve(["纯净度：❓ 无出口 IP，跳过"]);
+  if (!ip) return Promise.resolve(["纯净度 ▸ ❓ 无出口 IP，跳过"]);
   var pcUrl = "https://proxycheck.io/v2/" + ip + "?vpn=3&asn=1&risk=1";
   var pcReq = get(pcUrl, { policy: GROUP });
   var iaReq = ipInfo.iaReuse
@@ -110,7 +125,7 @@ function testPurity(ipInfo) {
     var pc = null, ia = ipInfo.iaReuse || null;
     try { var j = JSON.parse(rs[0].body); if (j.status === "ok" && j[ip]) pc = j[ip]; } catch (e) {}
     if (!ia && rs[1]) { try { var j2 = JSON.parse(rs[1].body); if (j2.status === "success") ia = j2; } catch (e) {} }
-    if (!pc && !ia) return ["纯净度：❓ 检测失败（数据源不可用）"];
+    if (!pc && !ia) return ["纯净度 ▸ ❓ 检测失败（数据源不可用）"];
     var lines = [];
     if (pc) {
       var score = 100 - (typeof pc.risk === "number" ? pc.risk : 0);
@@ -126,9 +141,9 @@ function testPurity(ipInfo) {
       }
       if (score > 100) score = 100; if (score < 0) score = 0;
       var grade = score >= 85 ? "🟢 很纯净" : score >= 70 ? "🟢 纯净" : score >= 50 ? "🟡 一般" : score >= 30 ? "🟠 风险较高" : "🔴 很脏";
-      lines.push("纯净度：" + grade + "（" + score + " 分）");
-      lines.push("类型：" + typeZh + "（" + (pc.type || "-") + "） · 风险分：" + (typeof pc.risk === "number" ? pc.risk : "-") + " · " + flags.join(" · "));
-      if (pc.provider && (!ipInfo.org || ipInfo.org.indexOf(pc.provider) < 0)) lines.push("提供商：" + pc.provider);
+      lines.push("纯净度 ▸ " + grade + "（" + score + " 分）" + scoreBar(score));
+      lines.push("类型 ▸ " + typeZh + "（" + (pc.type || "-") + "） · 风险分：" + (typeof pc.risk === "number" ? pc.risk : "-") + " · " + flags.join(" · "));
+      if (pc.provider && (!ipInfo.org || ipInfo.org.indexOf(pc.provider) < 0)) lines.push("提供商 ▸ " + pc.provider);
     } else {
       // 只有 ip-api 时的粗略评估
       var s2 = 70;
@@ -136,9 +151,9 @@ function testPurity(ipInfo) {
       if (ia.hosting) s2 -= 20;
       if (ia.mobile) s2 += 10;
       if (s2 > 100) s2 = 100; if (s2 < 0) s2 = 0;
-      lines.push("纯净度：约 " + s2 + " 分（粗略评估，主数据源不可用）");
+      lines.push("纯净度 ▸ 约 " + s2 + " 分（粗略评估，主数据源不可用）" + scoreBar(s2));
     }
-    if (ia) lines.push("交叉验证(ip-api)：代理 " + (ia.proxy ? "是" : "否") + " · 机房 " + (ia.hosting ? "是" : "否") + " · 移动网络 " + (ia.mobile ? "是" : "否"));
+    if (ia) lines.push("交叉验证 ▸ ip-api：代理 " + (ia.proxy ? "是" : "否") + " · 机房 " + (ia.hosting ? "是" : "否") + " · 移动网络 " + (ia.mobile ? "是" : "否"));
     return lines;
   });
 }
@@ -151,18 +166,18 @@ function localInfo() {
   var cell = n["cellular-data"];
   var iface = v4.primaryInterface || v6.primaryInterface || "-";
   var kind = wifi.ssid ? ("Wi-Fi：" + wifi.ssid) : (cell ? "蜂窝数据" : "-");
-  var head = "接口：" + iface + "（" + kind + "）";
+  var head = "接口 ▸ " + iface + "（" + kind + "）";
   if (cell && (cell.carrier || cell.radio)) head += " · 蜂窝：" + (cell.carrier || "") + (cell.radio ? " " + cell.radio : "");
   lines.push(head);
-  if (wifi.bssid) lines.push("BSSID：" + wifi.bssid);
+  if (wifi.bssid) lines.push("BSSID ▸ " + wifi.bssid);
   var addrs = [];
-  if (v4.primaryAddress) addrs.push("IPv4：" + v4.primaryAddress + (v4.primaryRouter ? "（网关 " + v4.primaryRouter + "）" : ""));
-  if (v6.primaryAddress) addrs.push("IPv6：" + v6.primaryAddress);
+  if (v4.primaryAddress) addrs.push("IPv4 ▸ " + v4.primaryAddress + (v4.primaryRouter ? "（网关 " + v4.primaryRouter + "）" : ""));
+  if (v6.primaryAddress) addrs.push("IPv6 ▸ " + v6.primaryAddress);
   if (addrs.length) lines.push(addrs.join(" · "));
   var env = (typeof $environment !== "undefined") ? $environment : {};
   var tail = [];
-  if (n.dns && n.dns.length) tail.push("DNS：" + n.dns.join(", "));
-  if (env.system) tail.push("系统：" + env.system + (env["device-model"] ? " " + env["device-model"] : "") + (env["surge-version"] ? " · Surge " + env["surge-version"] : ""));
+  if (n.dns && n.dns.length) tail.push("DNS ▸ " + n.dns.join(", "));
+  if (env.system) tail.push("系统 ▸ " + env.system + (env["device-model"] ? " " + env["device-model"] : "") + (env["surge-version"] ? " · Surge " + env["surge-version"] : ""));
   if (tail.length) lines.push(tail.join(" · "));
   return lines;
 }
@@ -289,36 +304,36 @@ function testGemini() {
     if (timeout || !rs) {
       lines.push("⏱ 检测超时，部分项目未完成，请点刷新重试。");
       lines.push("");
-      lines.push("🏠 本地网络");
+      lines.push(secTitle("🏠", "本地网络"));
       lines = lines.concat(localInfo());
       $done({ title: "🌐 网络信息与解锁检测", content: lines.join("\n"), icon: "network", "icon-color": "#F6A21E" });
       return;
     }
     var ip = rs[0];
-    lines.push("📍 节点出口");
+    lines.push(secTitle("📍", "节点出口"));
     if (ip.ip) {
-      lines.push("IP：" + ip.ip + "  " + flag(ip.country) + " " + ip.text);
-      if (ip.org) lines.push("运营商：" + ip.org);
+      lines.push("IP ▸ " + ip.ip + "  " + flag(ip.country) + " " + ip.text);
+      if (ip.org) lines.push("运营商 ▸ " + ip.org);
       var meta = [];
-      if (ip.tz) meta.push("时区：" + ip.tz);
-      meta.push("策略：" + currentPolicy());
+      if (ip.tz) meta.push("时区 ▸ " + ip.tz);
+      meta.push("策略 ▸ " + currentPolicy());
       lines.push(meta.join(" · "));
     } else lines.push(ip.text);
     // 纯净度紧跟出口 IP（同一区块，测的就是上面这个 IP）
-    lines = lines.concat(rs[8] || ["纯净度：❓ 未检测"]);
+    lines = lines.concat(rs[8] || ["纯净度 ▸ ❓ 未检测"]);
     lines.push("");
-    lines.push("🎬 流媒体解锁");
-    lines.push("Netflix：" + rs[1]);
-    lines.push("Disney+：" + rs[2]);
-    lines.push("YouTube Premium：" + rs[3]);
-    lines.push("TikTok：" + rs[4]);
+    lines.push(secTitle("🎬", "流媒体解锁"));
+    lines.push(padName("Netflix") + "▸ " + rs[1]);
+    lines.push(padName("Disney+") + "▸ " + rs[2]);
+    lines.push(padName("YouTube") + "▸ " + rs[3]);
+    lines.push(padName("TikTok") + "▸ " + rs[4]);
     lines.push("");
-    lines.push("🤖 AI 解锁");
-    lines.push("ChatGPT：" + rs[5]);
-    lines.push("Claude：" + rs[6]);
-    lines.push("Gemini：" + rs[7]);
+    lines.push(secTitle("🤖", "AI 解锁"));
+    lines.push(padName("ChatGPT") + "▸ " + rs[5]);
+    lines.push(padName("Claude") + "▸ " + rs[6]);
+    lines.push(padName("Gemini") + "▸ " + rs[7]);
     lines.push("");
-    lines.push("🏠 本地网络");
+    lines.push(secTitle("🏠", "本地网络"));
     lines = lines.concat(localInfo());
     var now = new Date();
     function p2(x) { return (x < 10 ? "0" : "") + x; }

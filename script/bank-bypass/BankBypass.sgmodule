@@ -1,0 +1,43 @@
+#!name=银行直连（跳过代理）
+#!desc=让银行类 App 的流量绕过代理、直连官方服务器，避免银行 App 因代理/MITM 报网络异常或拒绝登录。原理：iOS 版 Surge 无法按 App 排除流量（PROCESS-NAME 仅 Mac 可用），故按银行官方域名 DOMAIN-SUFFIX 全量直连。使用：把本模块放在模块列表最底部（越靠下优先级越高），保证 DIRECT 先于去广告模块的拦截命中。银行域名默认不在其他模块的 MITM 列表内，不会被解密。本模块手工维护，无自动同步。
+#!category=🏦 银行
+
+[Rule]
+# 中国人民银行 / 银联体系
+DOMAIN-SUFFIX,pbc.gov.cn,DIRECT
+DOMAIN-SUFFIX,unionpay.com,DIRECT
+DOMAIN-SUFFIX,unionpayintl.com,DIRECT
+DOMAIN-SUFFIX,chinaums.com,DIRECT
+DOMAIN-SUFFIX,nucc.cn,DIRECT
+
+# 政策性银行
+DOMAIN-SUFFIX,cdb.com.cn,DIRECT
+DOMAIN-SUFFIX,adbc.com.cn,DIRECT
+DOMAIN-SUFFIX,eximbank.gov.cn,DIRECT
+
+# 国有大行
+DOMAIN-SUFFIX,icbc.com.cn,DIRECT
+DOMAIN-SUFFIX,ccb.com,DIRECT
+DOMAIN-SUFFIX,abchina.com,DIRECT
+DOMAIN-SUFFIX,boc.cn,DIRECT
+DOMAIN-SUFFIX,bankcomm.com,DIRECT
+DOMAIN-SUFFIX,psbc.com,DIRECT
+
+# 股份制银行
+DOMAIN-SUFFIX,cmbchina.com,DIRECT
+DOMAIN-SUFFIX,spdb.com.cn,DIRECT
+DOMAIN-SUFFIX,citicbank.com,DIRECT
+DOMAIN-SUFFIX,cebbank.com,DIRECT
+DOMAIN-SUFFIX,cmbc.com.cn,DIRECT
+DOMAIN-SUFFIX,cib.com.cn,DIRECT
+DOMAIN-SUFFIX,cgbchina.com.cn,DIRECT
+DOMAIN-SUFFIX,hxb.com.cn,DIRECT
+DOMAIN-SUFFIX,czbank.com,DIRECT
+DOMAIN-SUFFIX,cbhb.com.cn,DIRECT
+DOMAIN-SUFFIX,pingan.com,DIRECT
+
+# 地方银行（德州）
+DOMAIN-SUFFIX,dzbchina.com,DIRECT
+# 德州农商银行无独立官网域名，其公告与手机银行走山东省农村信用社联合社统一平台，故直连省联社域名（覆盖全省农商体系）
+DOMAIN-SUFFIX,sdnxs.com,DIRECT
+DOMAIN-SUFFIX,sdrcu.com,DIRECT

@@ -14,6 +14,17 @@
 //   走备用源时把结果直接给纯净度复用，省一次重复请求
 // - 运营商与 proxycheck 的 provider 去重，只显示一行
 // - 本地网络区块压缩行数；底部加更新时间；面板图标颜色随解锁结果变化
+//
+// 深度检测区块（参考 MaYIHEI/paperclip 的 Loon 插件 ipquality-web-test 的
+// 检测项目，按 Surge 脚本 API 重写，数据源换成免 key 可直连的公开接口）：
+// - 评分对照：proxycheck 风险分（纯净度已取）+ Scamalytics 欺诈分（网页解析）
+// - 风险因素：汇总 proxycheck / ip-api 的代理、VPN、机房、类型标记
+// - BGP 信息：RIPEstat network-info 的 ASN 与宣告网段（proxycheck range 兜底）
+// - 地区一致：ipinfo / ip-api / ipwho.is 三源国家与城市比对
+// - 出口一致：ipinfo 与 icanhazip 双源出口 IP 比对（不一致提示可能分流）
+// 原插件的三网延迟 / MTR / 入站路径依赖 globalping 外部探针的异步测量，
+// 面板 30 秒超时内装不下，未移植；ipapi.is 匿名接口不返回 is_* 风险标记，
+// 故类型与因素改以 proxycheck + ip-api 为准，ipapi.is 只取公司与 ASN。
 // ============================================================
 
 var GROUP = (typeof $argument !== "undefined" && $argument) ? String($argument) : "节点选择";
@@ -81,6 +92,7 @@ function checkIP() {
           return {
             ip: j.ip,
             country: j.country || "",
+            city: j.city || "",
             text: j.city ? (j.city + ", " + (j.region || "") + " " + (j.country || "")) : (j.country || ""),
             org: j.org || asn,
             tz: j.timezone || "",
@@ -95,14 +107,14 @@ function checkIP() {
         try {
           var j2 = JSON.parse(r2.body);
           if (j2.status === "success") return {
-            ip: j2.query, country: j2.countryCode,
+            ip: j2.query, country: j2.countryCode, city: j2.city || "",
             text: (j2.city + ", " + j2.regionName + " " + j2.country),
             org: j2.as + " " + j2.isp, tz: j2.timezone,
             iaReuse: j2
           };
         } catch (e) {}
       }
-      return { ip: "", country: "", text: "查询失败", org: "", tz: "", iaReuse: null };
+      return { ip: "", country: "", text: "查询失败", city: "", org: "", tz: "", iaReuse: null };
     });
   });
 }
@@ -120,11 +132,12 @@ function testPurity(ipInfo) {
   var pcReq = get(pcUrl, { policy: GROUP });
   var iaReq = ipInfo.iaReuse
     ? Promise.resolve(null) // 备用源已带回标记，直接复用
-    : get("http://ip-api.com/json/" + ip + "?fields=status,proxy,hosting,mobile", { policy: GROUP });
+    : get("http://ip-api.com/json/" + ip + "?fields=status,proxy,hosting,mobile,countryCode,city", { policy: GROUP });
   return Promise.all([pcReq, iaReq]).then(function (rs) {
     var pc = null, ia = ipInfo.iaReuse || null;
     try { var j = JSON.parse(rs[0].body); if (j.status === "ok" && j[ip]) pc = j[ip]; } catch (e) {}
     if (!ia && rs[1]) { try { var j2 = JSON.parse(rs[1].body); if (j2.status === "success") ia = j2; } catch (e) {} }
+    ipInfo._pc = pc; ipInfo._ia = ia; // 深度检测复用，免重复请求
     if (!pc && !ia) return ["纯净度 ▸ ❓ 检测失败（数据源不可用）"];
     var lines = [];
     if (pc) {
@@ -154,6 +167,88 @@ function testPurity(ipInfo) {
       lines.push("纯净度 ▸ 约 " + s2 + " 分（粗略评估，主数据源不可用）" + scoreBar(s2));
     }
     if (ia) lines.push("交叉验证 ▸ ip-api：代理 " + (ia.proxy ? "是" : "否") + " · 机房 " + (ia.hosting ? "是" : "否") + " · 移动网络 " + (ia.mobile ? "是" : "否"));
+    return lines;
+  });
+}
+
+// ---------- 2.5 深度检测（多源对照，全部显式走 GROUP，任一源失败只少一行） ----------
+// 数据源：Scamalytics 欺诈分（网页解析）/ RIPEstat（BGP）/ ipwho.is（第三地理源）
+//         / ipapi.is（公司与 ASN）/ icanhazip（第二出口）；proxycheck 与 ip-api 复用纯净度的结果
+function testDeep(ipInfo) {
+  var ip = ipInfo.ip;
+  if (!ip) return Promise.resolve([]);
+  var pc = ipInfo._pc || null, ia = ipInfo._ia || null;
+  return Promise.all([
+    get("https://scamalytics.com/ip/" + ip, { policy: GROUP }),
+    get("https://stat.ripe.net/data/network-info/data.json?resource=" + ip, { policy: GROUP }),
+    get("https://ipwho.is/" + ip, { policy: GROUP }),
+    get("https://api.ipapi.is/?q=" + ip, { policy: GROUP }),
+    get("https://ipv4.icanhazip.com/", { policy: GROUP })
+  ]).then(function (rs) {
+    var lines = [];
+    // 评分对照：proxycheck 风险分 + Scamalytics 欺诈分（0-100，越低越干净，口径不同故并列不合并）
+    var scores = [];
+    if (pc && typeof pc.risk === "number") scores.push("proxycheck 风险 " + pc.risk);
+    var sm = rs[0].body.match(/Fraud Score:\s*(\d{1,3})/);
+    if (sm) scores.push("Scamalytics 欺诈 " + sm[1]);
+    if (scores.length) lines.push("评分对照 ▸ " + scores.join(" · "));
+    // 风险因素：命中才列，全不命中给明确结论
+    var factors = [];
+    if (pc) {
+      if (pc.proxy === "yes") factors.push("代理出口");
+      if (pc.vpn === "yes") factors.push("VPN 出口");
+      if (pc.type === "Hosting") factors.push("机房托管");
+    }
+    if (ia) {
+      if (ia.hosting && (!pc || pc.type !== "Hosting")) factors.push("机房标记（ip-api）");
+      if (ia.proxy && (!pc || pc.proxy !== "yes")) factors.push("代理标记（ip-api）");
+    }
+    lines.push("风险因素 ▸ " + (factors.length ? factors.join(" · ") : "无明显风险因素"));
+    // BGP：ASN + 宣告网段（RIPEstat 优先，proxycheck 的 asn / range 兜底）
+    var asn = "", prefix = "";
+    try {
+      var rj = JSON.parse(rs[1].body);
+      if (rj.data) {
+        if (rj.data.asns && rj.data.asns.length) asn = "AS" + rj.data.asns[0];
+        prefix = rj.data.prefix || "";
+      }
+    } catch (e) {}
+    if (!asn && pc && pc.asn) asn = pc.asn;
+    if (!prefix && pc && pc.range) prefix = pc.range;
+    var bgp = [];
+    if (asn) bgp.push(asn);
+    if (prefix) bgp.push("网段 " + prefix);
+    var comp = "";
+    try { var cj = JSON.parse(rs[3].body); comp = cj.company || ""; } catch (e) {}
+    if (comp && (!ipInfo.org || ipInfo.org.indexOf(comp) < 0)) bgp.push(comp);
+    if (bgp.length) lines.push("BGP ▸ " + bgp.join(" · "));
+    // 地区一致：国家看 ipinfo / ip-api / ipwho.is 三源代码，城市看三源名称（小写归一后比对）
+    var who = null;
+    try { var wj = JSON.parse(rs[2].body); if (wj.success) who = wj; } catch (e) {}
+    var codes = [];
+    if (ipInfo.country) codes.push(ipInfo.country.toUpperCase());
+    if (ia && ia.countryCode) codes.push(ia.countryCode.toUpperCase());
+    if (who && who.country_code) codes.push(who.country_code.toUpperCase());
+    var cities = [];
+    [ipInfo.city, ia && ia.city, who && who.city].forEach(function (c) { if (c) cities.push(String(c).toLowerCase()); });
+    function agree(arr) {
+      if (arr.length < 2) return "";
+      var same = arr.every(function (x) { return x === arr[0]; });
+      return arr.length + " 源" + (same ? "一致" : "不一致");
+    }
+    var reg = [];
+    var ca = agree(codes);
+    if (ca) {
+      var cSame = codes.every(function (x) { return x === codes[0]; });
+      reg.push("国家 " + ca + (cSame ? "（" + codes[0] + "）" : ""));
+    }
+    var ta = agree(cities); if (ta) reg.push("城市 " + ta);
+    if (reg.length) lines.push("地区一致 ▸ " + reg.join(" · "));
+    // 出口一致：第二回显源拿到的 IP 与主出口相同，说明没有按域名分流到别的出口
+    var ip2 = (rs[4].body || "").trim();
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip2)) {
+      lines.push(ip2 === ip ? "出口一致 ▸ ✅ 双源一致" : "出口一致 ▸ ⚠️ 不一致（主 " + ip + " / 副 " + ip2 + "，可能分流）");
+    }
     return lines;
   });
 }
@@ -292,7 +387,9 @@ function testGemini() {
   ]);
   var jobs = checkIP().then(function (ipInfo) {
     return Promise.all([others, testPurity(ipInfo)]).then(function (x) {
-      return [ipInfo].concat(x[0], [x[1]]);
+      return testDeep(ipInfo).then(function (deep) {
+        return [ipInfo].concat(x[0], [x[1], deep]);
+      });
     });
   });
   var timer = setTimeout(function () { finish(null, true); }, 25000);
@@ -321,6 +418,12 @@ function testGemini() {
     } else lines.push(ip.text);
     // 纯净度紧跟出口 IP（同一区块，测的就是上面这个 IP）
     lines = lines.concat(rs[8] || ["纯净度 ▸ ❓ 未检测"]);
+    // 深度检测紧随纯净度（同一出口的多源对照）
+    if (rs[9] && rs[9].length) {
+      lines.push("");
+      lines.push(secTitle("🛡", "深度检测"));
+      lines = lines.concat(rs[9]);
+    }
     lines.push("");
     lines.push(secTitle("🎬", "流媒体解锁"));
     lines.push(padName("Netflix") + "▸ " + rs[1]);

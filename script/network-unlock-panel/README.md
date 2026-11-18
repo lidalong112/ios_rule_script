@@ -9,6 +9,7 @@
   - IP 查询显式走 argument 指定的策略组（默认 `节点选择`），测的就是这个出口
 - 本地网络 / 接口：接口名、Wi-Fi SSID/BSSID 或蜂窝运营商/制式、IPv4/网关、IPv6、DNS、设备与 Surge 版本（来自 $network / $environment）
 - 节点 IP 纯净度：主数据源 proxycheck.io（免 key）的风险分 + 代理/VPN 标记 + IP 类型（住宅/商业/机房），再用 ip-api 的 proxy/hosting/mobile 交叉验证。面板的「纯净度 X 分」是按这两项综合换算的：基础 100 - 风险分，代理 -30、VPN -20、机房 -25、商业 -10，并把扣分明细（类型、风险分、各标记）都显示出来，不是官方分数。proxycheck 免 key 额度约 100 次/天，所以模块的自动刷新间隔设为 3600 秒（1 小时），平时用右上角手动刷新；不要把间隔改回几分钟，否则一天内打开策略页几次就可能把额度用完，纯净度那段会显示「检测失败」
+- 深度检测（参考 MaYIHEI/paperclip 的 Loon 插件 ipquality-web-test 的检测项目，按 Surge 脚本 API 重写）：评分对照（proxycheck 风险分 + Scamalytics 欺诈分，口径不同故并列不合并）、风险因素（代理/VPN/机房等命中标记）、BGP 信息（RIPEstat 的 ASN 与宣告网段）、地区一致（ipinfo / ip-api / ipwho.is 三源国家与城市比对）、出口一致（ipinfo 与 icanhazip 双源出口 IP 比对，不一致提示可能按域名分流）。全部免 key；任一数据源失败只少对应一行，不影响其他区块。原插件的三网延迟 / MTR / 入站路径依赖 globalping 外部探针的异步测量，面板 30 秒超时内装不下，未移植；ipapi.is 匿名接口不返回 is_* 风险标记，故类型与因素以 proxycheck + ip-api 为准
 - 流媒体解锁：Netflix（双片源法：完整解锁 / 仅自制剧 / 未解锁）、Disney+、YouTube Premium（带地区）、TikTok（带地区）
 - AI 解锁：ChatGPT/OpenAI（API 返回 401=地区可用，403=地区封锁，并用 chatgpt.com trace 显示出口地区）、Claude、Gemini
   - 注意：Claude 对脚本请求经常回 Cloudflare 校验的 403，那不是地区封锁，脚本会显示「无法判定（被 Cloudflare 拦截）」而不是误报未解锁

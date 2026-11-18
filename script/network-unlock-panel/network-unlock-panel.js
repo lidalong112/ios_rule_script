@@ -74,6 +74,9 @@ function secTitle(emoji, name) {
   return emoji + " " + name + " " + line;
 }
 function padName(n) { while (n.length < 8) n += " "; return n; }
+function ipTypeZh(t) {
+  return { "Residential": "住宅", "Business": "商业", "Hosting": "机房", "Wireless": "移动", "Education": "教育", "Government": "政府", "Banking": "金融" }[t] || t || "-";
+}
 
 // ---------- 1. 出口 IP 信息 ----------
 // 备用源 ip-api 一次把纯净度交叉验证要的 proxy/hosting/mobile 也查回来，
@@ -142,10 +145,8 @@ function testPurity(ipInfo) {
     var lines = [];
     if (pc) {
       var score = 100 - (typeof pc.risk === "number" ? pc.risk : 0);
-      var flags = [];
-      if (pc.proxy === "yes") { score -= 30; flags.push("代理:是"); } else flags.push("代理:否");
-      if (pc.vpn === "yes") { score -= 20; flags.push("VPN:是"); } else flags.push("VPN:否");
-      var typeZh = { "Residential": "住宅", "Business": "商业", "Hosting": "机房", "Wireless": "移动", "Education": "教育", "Government": "政府", "Banking": "金融" }[pc.type] || pc.type || "-";
+      if (pc.proxy === "yes") score -= 30;
+      if (pc.vpn === "yes") score -= 20;
       if (pc.type === "Hosting") score -= 25;
       else if (pc.type === "Business") score -= 10;
       if (ia) {
@@ -155,8 +156,6 @@ function testPurity(ipInfo) {
       if (score > 100) score = 100; if (score < 0) score = 0;
       var grade = score >= 85 ? "🟢 很纯净" : score >= 70 ? "🟢 纯净" : score >= 50 ? "🟡 一般" : score >= 30 ? "🟠 风险较高" : "🔴 很脏";
       lines.push("纯净度 ▸ " + grade + "（" + score + " 分）" + scoreBar(score));
-      lines.push("类型 ▸ " + typeZh + "（" + (pc.type || "-") + "） · 风险分：" + (typeof pc.risk === "number" ? pc.risk : "-") + " · " + flags.join(" · "));
-      if (pc.provider && (!ipInfo.org || ipInfo.org.indexOf(pc.provider) < 0)) lines.push("提供商 ▸ " + pc.provider);
     } else {
       // 只有 ip-api 时的粗略评估
       var s2 = 70;
@@ -166,7 +165,6 @@ function testPurity(ipInfo) {
       if (s2 > 100) s2 = 100; if (s2 < 0) s2 = 0;
       lines.push("纯净度 ▸ 约 " + s2 + " 分（粗略评估，主数据源不可用）" + scoreBar(s2));
     }
-    if (ia) lines.push("交叉验证 ▸ ip-api：代理 " + (ia.proxy ? "是" : "否") + " · 机房 " + (ia.hosting ? "是" : "否") + " · 移动网络 " + (ia.mobile ? "是" : "否"));
     return lines;
   });
 }
@@ -186,12 +184,13 @@ function testDeep(ipInfo) {
     get("https://ipv4.icanhazip.com/", { policy: GROUP })
   ]).then(function (rs) {
     var lines = [];
-    // 评分对照：proxycheck 风险分 + Scamalytics 欺诈分（0-100，越低越干净，口径不同故并列不合并）
+    // 评分：proxycheck 风险分 + Scamalytics 欺诈分（0-100，越低越干净，口径不同故并列不合并）+ IP 类型
     var scores = [];
-    if (pc && typeof pc.risk === "number") scores.push("proxycheck 风险 " + pc.risk);
+    if (pc && typeof pc.risk === "number") scores.push("proxycheck " + pc.risk);
     var sm = rs[0].body.match(/Fraud Score:\s*(\d{1,3})/);
-    if (sm) scores.push("Scamalytics 欺诈 " + sm[1]);
-    if (scores.length) lines.push("评分对照 ▸ " + scores.join(" · "));
+    if (sm) scores.push("Scamalytics " + sm[1]);
+    if (pc && pc.type) scores.push("类型 " + ipTypeZh(pc.type));
+    if (scores.length) lines.push("评分 ▸ " + scores.join(" · "));
     // 风险因素：命中才列，全不命中给明确结论
     var factors = [];
     if (pc) {
@@ -222,7 +221,7 @@ function testDeep(ipInfo) {
     try { var cj = JSON.parse(rs[3].body); comp = cj.company || ""; } catch (e) {}
     if (comp && (!ipInfo.org || ipInfo.org.indexOf(comp) < 0)) bgp.push(comp);
     if (bgp.length) lines.push("BGP ▸ " + bgp.join(" · "));
-    // 地区一致：国家看 ipinfo / ip-api / ipwho.is 三源代码，城市看三源名称（小写归一后比对）
+    // 对照：地区（三源国家/城市）与出口（双源 IP）压成一行，✓/✗ 记号
     var who = null;
     try { var wj = JSON.parse(rs[2].body); if (wj.success) who = wj; } catch (e) {}
     var codes = [];
@@ -231,24 +230,24 @@ function testDeep(ipInfo) {
     if (who && who.country_code) codes.push(who.country_code.toUpperCase());
     var cities = [];
     [ipInfo.city, ia && ia.city, who && who.city].forEach(function (c) { if (c) cities.push(String(c).toLowerCase()); });
-    function agree(arr) {
+    function mark(arr) {
       if (arr.length < 2) return "";
-      var same = arr.every(function (x) { return x === arr[0]; });
-      return arr.length + " 源" + (same ? "一致" : "不一致");
+      return arr.every(function (x) { return x === arr[0]; }) ? "✓" : "✗";
     }
-    var reg = [];
-    var ca = agree(codes);
-    if (ca) {
-      var cSame = codes.every(function (x) { return x === codes[0]; });
-      reg.push("国家 " + ca + (cSame ? "（" + codes[0] + "）" : ""));
+    var cmp = [];
+    var cm = mark(codes), tm = mark(cities);
+    if (cm || tm) {
+      var reg = "地区";
+      if (cm) reg += " 国家" + cm + (cm === "✓" ? "(" + codes[0] + ")" : "");
+      if (tm) reg += " 城市" + tm;
+      cmp.push(reg);
     }
-    var ta = agree(cities); if (ta) reg.push("城市 " + ta);
-    if (reg.length) lines.push("地区一致 ▸ " + reg.join(" · "));
-    // 出口一致：第二回显源拿到的 IP 与主出口相同，说明没有按域名分流到别的出口
+    // 出口：第二回显源的 IP 与主出口相同，说明没有按域名分流到别的出口
     var ip2 = (rs[4].body || "").trim();
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(ip2)) {
-      lines.push(ip2 === ip ? "出口一致 ▸ ✅ 双源一致" : "出口一致 ▸ ⚠️ 不一致（主 " + ip + " / 副 " + ip2 + "，可能分流）");
+      cmp.push(ip2 === ip ? "出口 ✓" : "出口 ✗（副 " + ip2 + "，可能分流）");
     }
+    if (cmp.length) lines.push("对照 ▸ " + cmp.join(" · "));
     return lines;
   });
 }
@@ -416,14 +415,9 @@ function testGemini() {
       meta.push("策略 ▸ " + currentPolicy());
       lines.push(meta.join(" · "));
     } else lines.push(ip.text);
-    // 纯净度紧跟出口 IP（同一区块，测的就是上面这个 IP）
+    // 纯净度与深度检测紧跟出口 IP（同一区块，测的就是上面这个 IP，不单设区块）
     lines = lines.concat(rs[8] || ["纯净度 ▸ ❓ 未检测"]);
-    // 深度检测紧随纯净度（同一出口的多源对照）
-    if (rs[9] && rs[9].length) {
-      lines.push("");
-      lines.push(secTitle("🛡", "深度检测"));
-      lines = lines.concat(rs[9]);
-    }
+    if (rs[9] && rs[9].length) lines = lines.concat(rs[9]);
     lines.push("");
     lines.push(secTitle("🎬", "流媒体解锁"));
     lines.push(padName("Netflix") + "▸ " + rs[1]);

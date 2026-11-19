@@ -6,11 +6,11 @@
 
 iOS 版 Surge 无法按 App 排除流量（PROCESS-NAME 仅 Mac 可用），故按银行官方域名 `DOMAIN-SUFFIX` 全量直连。银行域名默认不在其他模块的 MITM 列表内，不会被解密，本模块只负责直连。
 
-## 内容（28 条）
+## 内容（30 条）
 
 - 央行 / 银联体系：pbc.gov.cn、unionpay.com、unionpayintl.com、chinaums.com、nucc.cn
 - 政策性银行：国开行、农发行、进出口银行
-- 国有大行：工、建、农、中、交、邮储
+- 国有大行：工、建、农、中、交、邮储（建行含并行域名 ccb.com.cn、ccb.cn；建行生活 App 走 yunbusiness.ccb.com，已在 ccb.com 内）
 - 股份制银行：招行、浦发、中信、光大、民生、兴业、广发、华夏、浙商、渤海、平安
 - 地方银行（德州）：德州银行 dzbchina.com；德州农商银行无独立域名，走山东省农村信用社联合社统一平台 sdnxs.com / sdrcu.com
 

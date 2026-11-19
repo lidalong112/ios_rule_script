@@ -18,6 +18,9 @@ DOMAIN-SUFFIX,eximbank.gov.cn,DIRECT
 # 国有大行
 DOMAIN-SUFFIX,icbc.com.cn,DIRECT
 DOMAIN-SUFFIX,ccb.com,DIRECT
+# 建行生活 App 本体走 yunbusiness.ccb.com，已在上面的 ccb.com 覆盖内；下面两条是建行仍在并行使用的官方域名（如个人网银 ibsbjstar.ccb.com.cn），补齐建行全系
+DOMAIN-SUFFIX,ccb.com.cn,DIRECT
+DOMAIN-SUFFIX,ccb.cn,DIRECT
 DOMAIN-SUFFIX,abchina.com,DIRECT
 DOMAIN-SUFFIX,boc.cn,DIRECT
 DOMAIN-SUFFIX,bankcomm.com,DIRECT

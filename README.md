@@ -5,7 +5,7 @@
 **本仓库说明**：这是 [blackmatrix7/ios_rule_script](https://github.com/blackmatrix7/ios_rule_script) 的 fork，每日自动同步上游规则库；同时在 `script/` 下维护 8 个自研 / 合并的 Surge 模块（去广告、HTTPDNS 拦截、网络面板、银行直连等），每个模块都有固定安装地址，部分模块每日自动同步各自的上游。
 
 > **⚠️ 强调：本文档与本仓库的自研模块，全部由 AI 编写。**
-> 包括本 README 的文字、各自研模块的合并 / 转换代码与说明文档，均由 AI 生成，仓库主只负责提出需求与验收。使用前请自行核验内容，AI 生成内容不保证完全准确；上游规则库与上游脚本为原作者作品，不在此列。
+> 包括本 README 的文字、各自研模块的合并 / 转换代码与说明文档，均由 AI（Muse）生成，仓库主只负责提出需求与验收。使用前请自行核验内容，AI 生成内容不保证完全准确；上游规则库与上游脚本为原作者作品，不在此列。
 
 ## 目录
 
@@ -30,7 +30,7 @@
 | [anti-AD 域名集](https://github.com/lidalong112/ios_rule_script/tree/master/script/anti-ad) | privacy-protection-tools 的 10 万+ 广告 / 追踪域名集，以 DOMAIN-SET 远程引用，Surge 每日自动拉取上游 | [安装](https://raw.githubusercontent.com/lidalong112/ios_rule_script/master/script/anti-ad/Anti-AD.sgmodule) |
 | [百度超级搜索](https://github.com/lidalong112/ios_rule_script/tree/master/script/baidu-search) | Safari 默认引擎设为百度时，地址栏输入 gg / gh 等 13 个命令直达 Google、GitHub、Bing、知乎、B 站等站点 | [安装](https://raw.githubusercontent.com/lidalong112/ios_rule_script/master/script/baidu-search/BaiduSearch.sgmodule) |
 | [Telegram 跳转 Turrit](https://github.com/lidalong112/ios_rule_script/tree/master/script/redirect2turrit) | 把 t.me / telegram.me 链接 307 跳转到 Turrit 打开，覆盖帖子、私有频道、邀请、代理等 15 种链接形态 | [安装](https://raw.githubusercontent.com/lidalong112/ios_rule_script/master/script/redirect2turrit/Redirect2Turrit.sgmodule) |
-| [银行直连](https://github.com/lidalong112/ios_rule_script/tree/master/script/bank-bypass) | 28 条银行 / 银联域名直连规则，让银行 App 跳过代理（含德州银行、德州农商银行） | [安装](https://raw.githubusercontent.com/lidalong112/ios_rule_script/master/script/bank-bypass/BankBypass.sgmodule) |
+| [银行直连](https://github.com/lidalong112/ios_rule_script/tree/master/script/bank-bypass) | 30 条银行 / 银联域名直连规则，让银行 App 跳过代理（含德州银行、德州农商银行、建行生活） | [安装](https://raw.githubusercontent.com/lidalong112/ios_rule_script/master/script/bank-bypass/BankBypass.sgmodule) |
 
 ## 上游规则库
 

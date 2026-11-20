@@ -1,0 +1,7 @@
+# Empty policy list for the dual-airport Surge [Proxy Group].
+# Per the Surge manual (Policy Including), blank lines and lines starting
+# with # or // in a policy-path file are ignored, so this file loads
+# successfully and contributes zero policies.
+# It is the default policy-path of the second-airport group: single-airport
+# users need no edits; dual-airport users replace that policy-path with the
+# second airport's subscription URL.
